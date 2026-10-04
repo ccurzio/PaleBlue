@@ -31,6 +31,7 @@ my $AMIXER = $ENV{DOTCTL_AMIXER} // 'amixer';
 my $APLAY = $ENV{DOTCTL_APLAY} // 'aplay';
 my $PCM = $ENV{DOTCTL_PCM} // 'hw:0,23';
 my $IIO = $ENV{DOTCTL_IIO} // '/sys/bus/iio/devices/iio:device*';
+my $ALS = $ENV{DOTCTL_ALS} // '/sys/bus/i2c/devices/0-0039';
 
 # The mixer's raw volume is 0.5 dB a step with 127 at 0 dB (the control goes on to +24 dB, which clips).
 my $VOL_MAX = 127;
@@ -435,8 +436,10 @@ sub cmd_audio {
 	}
 
 sub cmd_lux {
-	my @f = (glob("$IIO/illuminance*_input"), glob("$IIO/in_illuminance*_input"), glob("$IIO/*illuminance*_raw"));
-	@f or die "dotctl: no light sensor under $IIO\n";
+	#my @f = (glob("$IIO/illuminance*_input"), glob("$IIO/in_illuminance*_input"), glob("$IIO/*illuminance*_raw"));
+	#@f or die "dotctl: no light sensor under $IIO\n";
+	my @f = (grep({ -e } "$ALS/als_calibrated_lux"), glob("$IIO/illuminance*_input"), glob("$IIO/in_illuminance*_input"), glob("$IIO/*illuminance*_raw"));
+	@f or die "dotctl: no light sensor at $ALS or under $IIO\n";
 	my $v = slurp($f[0]);
 	defined $v or die "dotctl: cannot read $f[0]\n";
 	print "$v\n";
