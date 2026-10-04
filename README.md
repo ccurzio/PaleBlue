@@ -94,7 +94,7 @@ If you want the buttons to trigger actions in the background, use `buttons --hoo
 
 **<ins>Bluetooth</ins>**  
 `dotctl bt status | on | off | scan SECS`  
-`dotctl bt devices paired | connected | trusted | bonded`. 
+`dotctl bt devices paired | connected | trusted | bonded`  
 `dotctl bt pair MAC | connect MAC | disconnect MAC | trust MAC | remove MAC`  
 `dotctl bt discoverable on | off`  
 `dotctl bt name TEXT`  
