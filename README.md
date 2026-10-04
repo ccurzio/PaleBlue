@@ -81,7 +81,7 @@ The Dot's audio device is actually fairly decent for the form factor it's cramme
 - You can turn audio on and off with `audio on` or `off`
 - `audio status` returns the current audio state and volume level.
 - You can set volume with `audio volume [0-100]` (Higher is louder.)
-- You can play an audio tone using `audio tone SECS HZ` where SECS is the number of seconds the tone should last and HZ is the tone frequency in hertz.
+- You can play an audio tone using `audio tone SECS HZ` where `SECS` is the number of seconds the tone should last and `HZ` is the tone frequency in hertz.
 - Play an audio file with `audio play FILE.wav`. (Only WAV files are supported right now.)
 - The current microphone state can be retrieved with `mute status`. Cut the device's microphone with `mute on` and re-enable it with `off`. `mute toggle` simply reads the current state and flips it.
 
