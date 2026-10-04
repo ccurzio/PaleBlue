@@ -33,7 +33,7 @@ Once unlocked, unplug the Dot and then start it in recovery mode by plugging it 
 2. Move into the project directory: `cd PaleBlue`
 3. Execute a dry run of the installer: `python3 tools/install-dot.py --hostname "DotHostname" --wifi "YourNetwork" --dry-run`; this will create a backup of your Dot's boot and recovery partitions, fetch all of the required packages, and build the system image. We do a dry run first to create the backup and make sure everything builds successfully without writing to the Dot.
 4. If everything looks good, burn the image to the Dot for real: `python3 tools/install-dot.py --hostname "DotHostname" --wifi "YourNetwork"`
-5. **BE PATIENT!** The install can take a few minutes. Don't interrupt the install process and don't unplug the device while installation is running.
+5. **BE PATIENT!** The install can take a few minutes. Don't interrupt the install process and don't unplug the device while the installation is running.
 6. A successful boot will show `PaleBlue Linux 0.1, address 169.254.0.27, SSH running`. You may see a message on the computer that says SSH on port 22 did not answer, but this isn't always indicative of a problem. Go ahead and connecting with SSH anyway. It'll probably work. 
 
 **<ins>Installation Notes</ins>**
@@ -44,7 +44,7 @@ Once unlocked, unplug the Dot and then start it in recovery mode by plugging it 
 - The LED ring will display a spinning animation while the device boots. Once booted, the ring should stop spinning and settle into a medium blue.
 - After the device has started up you can log into it as `root` using SSH. (The default password is "password" so change it ffs)
 - A wide-open root shell is available over the serial port connected through USB. On Windows you can access it through PuTTY. Open Device Manager, find "Ports," and make note of the COM port associated with the Dot. Then in PuTTY select "Serial" and enter that COM port. (You may have to hit enter after connecting to see the command prompt.) On macOS or Linux you can use a terminal emulator such as minicom. Find the port with `ls /dev/tty.*`; on macOS it'll be something like `/dev/tty.usbmodem14301`
-- If you want to restart the device in recovery mode, as root you can use `to-twrp --yes`
+- If you want to restart the device in recovery mode, logged into the Dot as root you can use `to-twrp --yes`
 - If you're in recovery mode and you want to boot normally without making any further changes, use `adb shell sh /cache/paleblue/back-to-linux.sh`
 - Once you've confirmed the device boots properly and you can get in via SSH, you can and probably should go ahead and disable that serial root shell. Edit `/etc/inittab` and comment out the `paleblue-console` entry. (Or just use: `sed -i 's|^::respawn:/usr/local/sbin/paleblue-console|#&|' /etc/inittab`.) Once the change is saved, the serial console will be disabled on the next reboot.
 - If you don't like nano, don't worry. vi is included as well.
