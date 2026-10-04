@@ -13,7 +13,7 @@ In addition to busybox and standard core system utilities, PaleBlue also include
 - **Sound**: Audio support via the Advanced Linux Sound Architecture (ALSA)
 - **Networking**: Bluetooth support via BlueZ as well as full Wi-Fi support
 - **Dropbear**: A lightweight SSH server
-- **PERL**: Larry Wall's Practical Extraction and Report Language
+- **Perl**: Larry Wall's Practical Extraction and Report Language
 - **GNU Nano**: The friendly console text editor, based on the PIne COmposer (or "pico")
 
 ## Requirements 
