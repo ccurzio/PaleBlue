@@ -42,10 +42,10 @@ Once unlocked, unplug the Dot and then start it in recovery mode by plugging it 
 - By default, the device will try to configure the network interface with DHCP after connecting to the network. If you instead want to give the device a static IP, use the correct values with `python3 tools/install-dot.py --hostname "DotHostname" --wifi "YourNetwork" --ip 169.254.0.18/24 --gateway 169.254.0.1` and optionally `--dns 1.1.1.1,2.2.2.2`
 - You will be prompted to set the passphrase for the wireless network during the installation process.
 - The LED ring will display a spinning animation while the device boots. Once booted, the ring should stop spinning and settle into a medium blue.
-- After the device has started up you can log into it as `root` using SSH. (The default password is "password" so change it ffs)
+- After the device has started up you can log into it as root using SSH. (The default password is "password" so change it ffs)
 - A wide-open root shell is available over the serial port connected through USB. On Windows you can access it through PuTTY. Open Device Manager, find "Ports," and make note of the COM port associated with the Dot. Then in PuTTY select "Serial" and enter that COM port. (You may have to hit enter after connecting to see the command prompt.) On macOS or Linux you can use a terminal emulator such as minicom. Find the port with `ls /dev/tty*`; on macOS it'll be something like `/dev/tty.usbmodem14301`
 - If you want to restart the device in recovery mode, logged into the Dot as root you can use `to-twrp --yes`
-- If you're in recovery mode and you want to boot normally without making any further changes, use `adb shell sh /cache/paleblue/back-to-linux.sh`
+- If you're in recovery mode and you want to boot normally without making any further changes, on the computer connected to the Dot use `adb shell sh /cache/paleblue/back-to-linux.sh`
 - Once you've confirmed the device boots properly and you can get in via SSH, you can and probably should go ahead and disable that serial root shell. Edit `/etc/inittab` and comment out the `paleblue-console` entry. (Or just use: `sed -i 's|^::respawn:/usr/local/sbin/paleblue-console|#&|' /etc/inittab`.) Once the change is saved, the serial console will be disabled on the next reboot.
 - If you don't like nano, don't worry. vi is included as well.
 
