@@ -14,10 +14,15 @@ In addition to busybox and standard core system utilities, PaleBlue also include
 - **GNU Nano**: The friendly console text editor, based on the PIne COmposer (or "pico")
 
 ## Requirements 
-- A 2nd Generation Amazon Echo Dot (RS03QR)
+- A 2nd Generation Amazon Echo Dot (RS03QR) running Fire OS 6 (tested with 6.5.6.4)
 - A computer running macOS, Linux, or Windows
 - The Android Debug Bridge ("adb") utility installed on the computer
+- Git installed on the computer (not strictly required but makes downloading easier)
+- Python installed on the computer (should already be there on Mac or Linux)
 - A micro USB cable to connect the Echo Dot to the computer
 
 ## Installation 
-1. If your Dot is not already unlocked, you will first need to unlock it using the amonet package. On Windows this will require installing the appropriate device drivers to communicate with the Echo Dot. Full instructions for this process can be found [here](https://xdaforums.com/t/unlock-root-twrp-unbrick-amazon-echo-dot-2nd-gen-2016-biscuit.4761416/).
+If your Dot is not already unlocked, you will first need to unlock it using the amonet package. On Windows this will also require installing the appropriate device drivers to communicate with the Echo Dot. Full instructions for this process can be found [here](https://xdaforums.com/t/unlock-root-twrp-unbrick-amazon-echo-dot-2nd-gen-2016-biscuit.4761416/).
+
+**<ins>Windows</ins>**  
+1. 
