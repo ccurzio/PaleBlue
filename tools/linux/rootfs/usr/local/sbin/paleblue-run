@@ -1,0 +1,20 @@
+#!/bin/busybox.static sh
+# Your own service, supervised by init: when it exits, init starts it again. The pause keeps a crash
+# from becoming a busy loop, and the boot script's marker keeps it from starting before the hardware
+# is ready.
+#
+# It runs /data/paleblue-linux/app/run if that is executable. That lives on userdata, so it outlasts
+# slots and updates and you can edit it over SSH without rebuilding anything. Until it exists this
+# looks for it every 10 s, so creating it starts the service without a reboot. It runs as root; run
+# it in the foreground (no daemonizing), because init supervises it. Its output goes to
+# /data/paleblue-linux/app.log.
+#
+# Maintenance: while /run/paleblue/hold exists nothing is started, so a service you are replacing does
+# not come back under you. `touch /run/paleblue/hold; killall <name>`, then `rm` it to resume.
+BB=/bin/busybox.static
+APP=/data/paleblue-linux/app/run
+while [ ! -e /run/paleblue/ready ]; do $BB sleep 1; done
+while [ -e /run/paleblue/hold ] || [ ! -x $APP ]; do $BB sleep 10; done
+$BB sleep 2
+echo "paleblue-run: starting $APP at $($BB date)" >> /data/paleblue-linux/app.log
+exec $APP >> /data/paleblue-linux/app.log 2>&1

@@ -1,0 +1,448 @@
+#!/usr/bin/perl -w
+#
+# PaleBlue Linux Dot Hardware Manager
+# by Christopher R. Curzio
+#
+#   dotctl led off | all COLOR | seg N COLOR | frame HEX72 | bar PERCENT [COLOR] | get | current [N] | anim on|off
+#   dotctl led spin [COLOR] | pulse [COLOR] [SECS_PER_BREATH] (run until interrupted, then the ring goes dark)
+#   dotctl mute [status|on|off|toggle]
+#   dotctl mute led [bright|dim]
+#   dotctl buttons [--hold SECS] [--hooks DIR]
+#   dotctl bt status | on | off | scan [SECS] | devices [paired|connected|trusted|bonded]
+#   dotctl bt pair MAC | connect MAC | disconnect MAC | trust MAC | remove MAC
+#   dotctl bt discoverable on|off | name TEXT
+#   dotctl bt accept [SECS]
+#   dotctl audio on | off | status | volume [0-100] | tone [SECS] [HZ] | play FILE.wav
+#   dotctl lux
+
+use strict;
+use Fcntl;
+use Getopt::Long qw(GetOptionsFromArray);
+use IO::Select;
+use IPC::Open2;
+use Time::HiRes qw(sleep time);
+$| = 1;
+
+my $LED = $ENV{DOTCTL_LED} // '/sys/bus/i2c/devices/0-003f';
+my $PRIV = $ENV{DOTCTL_PRIVACY} // '/sys/devices/soc/10010000.keypad/amz_privacy';
+my $INPUT = $ENV{DOTCTL_INPUT} // '/dev/input/event*';
+my $BTCTL = $ENV{DOTCTL_BTCTL} // 'bluetoothctl';
+my $AMIXER = $ENV{DOTCTL_AMIXER} // 'amixer';
+my $APLAY = $ENV{DOTCTL_APLAY} // 'aplay';
+my $PCM = $ENV{DOTCTL_PCM} // 'hw:0,23';
+my $IIO = $ENV{DOTCTL_IIO} // '/sys/bus/iio/devices/iio:device*';
+
+# The mixer's raw volume is 0.5 dB a step with 127 at 0 dB (the control goes on to +24 dB, which clips).
+my $VOL_MAX = 127;
+my $VOL_DEFAULT = 90;
+
+sub usage {
+	open my $f, '<', $0 or exit 2;
+	while (<$f>) {
+		next if $. == 1;
+		last unless /^#/;
+		s/^# ?//;
+		print;
+		}
+	exit 2;
+	}
+
+sub slurp {
+	open my $f, '<', $_[0] or return undef;
+	local $/;
+	my $s = <$f>;
+	close $f;
+	$s =~ s/\s+$// if defined $s;
+	return $s;
+	}
+
+sub spew {
+	my ($path, $value) = @_;
+	open my $f, '>', $path or die "dotctl: cannot write $path: $!\n";
+	print $f $value;
+	close $f or die "dotctl: writing $path: $!\n";
+	}
+
+my %NAMED = (red => 'ff0000', green => '00ff00', blue => '0000ff', white => 'ffffff', yellow => 'ffff00',
+             cyan => '00ffff', magenta => 'ff00ff', orange => 'ff6000', off => '000000');
+
+sub color {
+	my $c = lc(shift // die "dotctl: need a color\n");
+	return $NAMED{$c} if $NAMED{$c};
+	$c =~ s/^#//;
+	$c =~ /^[0-9a-f]{6}$/ or die "dotctl: '$c' is not a color (RRGGBB, or a name)\n";
+	return $c;
+	}
+
+sub frame_get {
+	my $h = slurp("$LED/frame");
+	return ('000000') x 12 unless defined $h && $h =~ /^[0-9a-f]{72}$/i;
+	return map { lc } unpack('(A6)12', $h);
+	}
+
+sub frame_put { spew("$LED/frame", join('', @_) . "\n") }
+
+sub anim {
+	my $on = shift;
+	eval { spew("$LED/boot_animation", $on ? '1' : '0') } if -e "$LED/boot_animation";
+	}
+
+sub cmd_led {
+	my ($sub, @a) = @_;
+	usage() unless defined $sub;
+	-d $LED or die "dotctl: no LED ring at $LED\n";
+	anim(0) if $sub =~ /^(off|all|seg|frame|spin)$/;
+
+	if ($sub eq 'off') { frame_put(('000000') x 12) }
+	elsif ($sub eq 'all') { frame_put((color($a[0])) x 12) }
+	elsif ($sub eq 'seg') {
+		my $n = $a[0];
+		defined $n && $n =~ /^\d+$/ && $n < 12 or die "dotctl: the segment is 0-11\n";
+		my @f = frame_get();
+		$f[$n] = color($a[1]);
+		frame_put(@f);
+		}
+	elsif ($sub eq 'frame') {
+		my $h = lc($a[0] // '');
+		$h =~ /^[0-9a-f]{72}$/ or die "dotctl: a frame is 72 hex digits (12 segments x RRGGBB)\n";
+		frame_put($h);
+		}
+	elsif ($sub eq 'get') { my @f = frame_get(); print "$_ $f[$_]\n" for 0 .. 11 }
+	elsif ($sub eq 'current') {
+		if (defined $a[0]) {
+			$a[0] =~ /^\d+$/ or die "dotctl: the current is a whole number\n";
+			spew("$LED/led_current", $a[0]);
+			}
+		else { print slurp("$LED/led_current") // '', "\n"; }
+		}
+	elsif ($sub eq 'anim') {
+		($a[0] // '') =~ /^(on|off)$/ or die "dotctl: led anim on|off\n";
+		anim($a[0] eq 'on');
+		}
+	elsif ($sub eq 'bar') {
+		my $p = $a[0];
+		defined $p && $p =~ /^\d+(\.\d+)?$/ && $p <= 100 or die "dotctl: led bar PERCENT (0-100)\n";
+		my $c = color($a[1] // 'white');
+		my $n = int($p / 100 * 12 + 0.5);
+		frame_put(map { $_ < $n ? $c : '000000' } 0 .. 11);
+		}
+	elsif ($sub eq 'pulse') {
+		my $c = color($a[0] // 'blue');
+		my $period = $a[1] // 3;
+		$period =~ /^\d+(\.\d+)?$/ && $period > 0 or die "dotctl: led pulse COLOR SECONDS\n";
+		my @rgb = map { hex } unpack('(A2)3', $c);
+		my ($stop, $t0) = (0, time);
+		$SIG{INT} = $SIG{TERM} = sub { $stop = 1 };
+		until ($stop) {
+			my $k = 0.04 + 0.96 * (1 - cos(2 * 3.14159265358979 * (time - $t0) / $period)) / 2;
+			frame_put((sprintf '%02x%02x%02x', map { int($_ * $k + 0.5) } @rgb) x 12);
+			sleep 0.05;
+			}
+		frame_put(('000000') x 12);
+		}
+	elsif ($sub eq 'spin') {
+		my $c = color($a[0] // 'blue');
+		my ($stop, $i) = (0, 0);
+		$SIG{INT} = $SIG{TERM} = sub { $stop = 1 };
+		until ($stop) {
+			my @f = ('000000') x 12;
+			$f[$i++ % 12] = $c;
+			frame_put(@f);
+			sleep 0.08;
+			}
+		frame_put(('000000') x 12);
+		}
+	else { usage() }
+	}
+
+sub muted {
+	my $s = slurp("$PRIV/privacy_state");
+	defined $s or die "dotctl: no mute interface at $PRIV\n";
+	return $s eq '1' ? 1 : 0;
+	}
+
+sub cmd_mute {
+	my ($sub, @a) = @_;
+	$sub //= 'status';
+	if ($sub eq 'status') { print muted() ? "muted\n" : "unmuted\n"; }
+	elsif ($sub =~ /^(on|off|toggle)$/) {
+		my $now  = muted();
+		my $want = $sub eq 'on' ? 1 : $sub eq 'off' ? 0 : 1 - $now;
+		if ($want != $now) {
+			if ($want) { spew("$PRIV/enable", '1'); }
+			else {
+				spew("$PRIV/shutdown_dialog_state", '1');
+				spew("$PRIV/shutdown_dialog_state", '0');
+				}
+			my $seen = 0;
+			for (1 .. 20) { if (muted() == $want) { $seen = 1; last } sleep 0.1 }
+			warn "dotctl: the state did not change\n" unless $seen;
+			}
+		print muted() ? "muted\n" : "unmuted\n";
+		}
+	elsif ($sub eq 'led') {
+		my $v = $a[0];
+		if (!defined $v) {
+			my $b = slurp("$PRIV/privacy_brightness");
+			defined $b or die "dotctl: no mute button light at $PRIV\n";
+			print $b eq '0' ? "bright\n" : "dim\n";
+			}
+		elsif ($v eq 'bright') { spew("$PRIV/privacy_brightness", '0') }
+		elsif ($v eq 'dim') { spew("$PRIV/privacy_brightness", '1') }
+		else { usage() }
+		}
+	else { usage() }
+	}
+
+sub cmd_buttons {
+	my @args = @_;
+	my ($hold, $hooks) = (1.0, undef);
+	GetOptionsFromArray(\@args, 'hold=f' => \$hold, 'hooks=s' => \$hooks) or usage();
+
+	my %NAME = (113 => 'mute', 114 => 'volume-down', 115 => 'volume-up', 138 => 'action');
+	my @fh;
+	for my $p (sort glob $INPUT) {
+		sysopen(my $f, $p, O_RDONLY | O_NONBLOCK) or next;
+		push @fh, $f;
+		}
+	@fh or die "dotctl: no input devices ($INPUT)\n";
+
+	my $sel = IO::Select->new(@fh);
+	my $tmpl = 'l! l! S S l';
+	my $esz  = length pack($tmpl, 0, 0, 0, 0, 0);
+	my (%down, %held);
+	$SIG{CHLD} = 'IGNORE';
+
+	my $emit = sub {
+		my ($name, $event) = @_;
+		print "$name $event\n";
+		return unless defined $hooks;
+		my $h = "$hooks/$name-$event";
+		return unless -x $h;
+		my $pid = fork;
+
+		if (defined $pid && $pid == 0) { exec $h, $name, $event; exit 127 }
+		};
+
+	while ($sel->count) {
+		my $timeout;
+		for my $c (keys %down) {
+			next if $held{$c};
+			my $left = $down{$c} + $hold - time;
+			$left = 0 if $left < 0;
+			$timeout = $left if !defined $timeout || $left < $timeout;
+			}
+
+		for my $f ($sel->can_read($timeout)) {
+			my $n = sysread($f, my $buf, $esz * 32);
+			if (!defined $n) { next if $!{EAGAIN} || $!{EINTR}; $sel->remove($f); next }
+			if ($n == 0) { $sel->remove($f); next }
+			for (my $o = 0; $o + $esz <= $n; $o += $esz) {
+				my (undef, undef, $type, $code, $val) = unpack($tmpl, substr($buf, $o, $esz));
+				next unless $type == 1 && $NAME{$code};
+				if ($val == 1) { $down{$code} = time; $held{$code} = 0; $emit->($NAME{$code}, 'press') }
+				elsif ($val == 0) { delete $down{$code}; delete $held{$code}; $emit->($NAME{$code}, 'release') }
+				}
+			}
+
+		my $now = time;
+		for my $c (keys %down) {
+			next if $held{$c} || $now - $down{$c} < $hold;
+			$held{$c} = 1;
+			$emit->($NAME{$c}, 'hold');
+			}
+		}
+	}
+
+sub bt { system($BTCTL, @_) == 0 or die "dotctl: bluetoothctl @_ failed\n"; }
+
+sub mac {
+	my $m = shift // '';
+	$m =~ /^([0-9a-f]{2}:){5}[0-9a-f]{2}$/i or die "dotctl: '$m' is not a Bluetooth address (AA:BB:CC:DD:EE:FF)\n";
+	return uc $m;
+	}
+
+# bluetoothctl's agent only lives as long as the bluetoothctl that registered it, so accepting a pair
+# from a phone needs one that stays running: this drives it through a pipe, trusts whoever pairs, and
+# lets the phone connect.
+
+sub bt_accept {
+	my $secs = shift;
+	my $pid = open2(my $out, my $in, $BTCTL, '--agent', 'NoInputNoOutput') or die "dotctl: cannot run $BTCTL\n";
+	my $old = select $in; $| = 1; select $old;
+	print $in "power on\npairable on\ndiscoverable on\ndefault-agent\n";
+	my $sel = IO::Select->new($out);
+	my ($end, $buf, %paired, %conn) = (time + $secs, '');
+	local $SIG{INT} = local $SIG{TERM} = sub { $end = 0 };
+	print "waiting up to $secs s for a phone to pair...\n";
+	LOOP: while (time < $end) {
+		$sel->can_read(0.5) or next;
+		my $n = sysread($out, my $chunk, 4096);
+		last unless $n;
+		$buf .= $chunk;
+		while ($buf =~ s/^(.*?)\r?\n//) {
+			my $l = $1;
+			$l =~ s/\e\[[0-9;?]*[A-Za-z]//g;
+			$l =~ s/\r//g;
+			if ($l =~ /Device ((?:[0-9A-F]{2}:){5}[0-9A-F]{2}) Paired: yes/i && !$paired{uc $1}++) {
+				print "paired ", uc $1, "\n";
+				print $in "trust $1\n";
+				}
+			if ($l =~ /Device ((?:[0-9A-F]{2}:){5}[0-9A-F]{2}) Connected: yes/i && !$conn{uc $1}++) {
+				print "connected ", uc $1, "\n";
+				print $in "trust $1\n";
+				last LOOP if $paired{uc $1};
+				}
+			}
+		}
+
+	print $in "discoverable off\nquit\n";
+	close $in;
+	my $until = time + 5;
+	while (time < $until && waitpid($pid, 1) == 0) { sleep 0.1 }
+	kill 'TERM', $pid if waitpid($pid, 1) == 0;
+	waitpid($pid, 0);
+	print %paired ? "done\n" : "no phone paired\n";
+	die "dotctl: nothing paired\n" unless %paired;
+	}
+
+sub cmd_bt {
+	my ($sub, @a) = @_;
+	usage() unless defined $sub;
+	if ($sub eq 'status') {
+		bt('show');
+		print "-- connected:\n";
+		bt('devices', 'Connected');
+		}
+	elsif ($sub eq 'on') { bt('power', 'on') }
+	elsif ($sub eq 'off') { bt('power', 'off') }
+	elsif ($sub eq 'scan') {
+		my $secs = $a[0] // 10;
+		$secs =~ /^\d+$/ && $secs > 0 or die "dotctl: scan for a number of seconds\n";
+		bt('--timeout', $secs, 'scan', 'on');
+		bt('devices');
+		}
+	elsif ($sub eq 'devices') {
+		my $f = $a[0];
+		if (defined $f) {
+			$f =~ /^(paired|connected|trusted|bonded)$/i or die "dotctl: devices [paired|connected|trusted|bonded]\n";
+			bt('devices', ucfirst lc $f);
+			}
+		else { bt('devices'); }
+		}
+	elsif ($sub eq 'pair') {
+		my $m = mac($a[0]);
+		bt('--timeout', 45, '--agent', 'NoInputNoOutput', 'pair', $m);
+		bt('trust', $m);
+		bt('connect', $m);
+		}
+	elsif ($sub =~ /^(connect|disconnect|trust|remove)$/) { bt($sub, mac($a[0])) }
+	elsif ($sub eq 'discoverable') {
+		($a[0] // '') =~ /^(on|off)$/ or die "dotctl: bt discoverable on|off\n";
+		bt('pairable', $a[0]) if $a[0] eq 'on';
+		bt('discoverable', $a[0]);
+		}
+	elsif ($sub eq 'accept') {
+		my $secs = $a[0] // 120;
+		$secs =~ /^\d+$/ && $secs > 0 or die "dotctl: bt accept SECONDS\n";
+		bt_accept($secs);
+		}
+	elsif ($sub eq 'name') {
+		defined $a[0] && length $a[0] or die "dotctl: bt name TEXT\n";
+		bt('system-alias', join ' ', @a);
+		}
+	else { usage() }
+	}
+
+sub mix_set {
+	my ($name, $value) = @_;
+	system($AMIXER, '-q', '-c', '0', 'cset', "name=$name", $value) == 0 or die "dotctl: could not set '$name' ($AMIXER)\n";
+	}
+
+sub mix_get {
+	my $name = shift;
+	open my $p, '-|', $AMIXER, '-c', '0', 'cget', "name=$name" or die "dotctl: cannot run $AMIXER\n";
+	my $v;
+	while (<$p>) { $v = $1 if /^\s*: values=(.*?)\s*$/ }
+	close $p;
+	return $v;
+	}
+
+sub audio_is_on { return (mix_get('Ext_Speaker_Amp_Switch') // '0') =~ /^(1|on)/i ? 1 : 0 }
+
+sub audio_on {
+	return if audio_is_on();
+	my $v = mix_get('PCM Playback Volume') // '';
+	mix_set('PCM Playback Volume', "$VOL_DEFAULT,$VOL_DEFAULT") if $v =~ /^(\d+),\1$/ && $1 >= $VOL_MAX;
+	mix_set('HPL Output Mixer L_DAC Switch', 'on');
+	mix_set('HPR Output Mixer R_DAC Switch', 'on');
+	mix_set('Audio_DacMux_Setting', '1');
+	mix_set('Ext_Speaker_Amp_Switch', '1');
+	}
+
+sub audio_off {
+	mix_set('Ext_Speaker_Amp_Switch', '0');
+	mix_set('Audio_DacMux_Setting', '0');
+	mix_set('HPL Output Mixer L_DAC Switch', 'off');
+	mix_set('HPR Output Mixer R_DAC Switch', 'off');
+	}
+
+sub aplay_cmd { return ($APLAY, '-q', '-D', $PCM, '--period-size=1024', '--buffer-size=4096', @_) }
+
+sub cmd_audio {
+	my ($sub, @a) = @_;
+	usage() unless defined $sub;
+	if ($sub eq 'on')  { audio_on() }
+	elsif ($sub eq 'off') { audio_off() }
+	elsif ($sub eq 'status') {
+		my $v = mix_get('PCM Playback Volume');
+		defined $v or die "dotctl: no mixer ($AMIXER)\n";
+		my ($l) = $v =~ /^(\d+)/;
+		printf "%s, volume %d%%\n", audio_is_on() ? 'on' : 'off', int(($l // 0) * 100 / $VOL_MAX + 0.5);
+		}
+	elsif ($sub eq 'volume') {
+		if (!defined $a[0]) {
+			my ($l) = (mix_get('PCM Playback Volume') // '') =~ /^(\d+)/;
+			defined $l or die "dotctl: no mixer ($AMIXER)\n";
+			printf "%d\n", int($l * 100 / $VOL_MAX + 0.5);
+			}
+		else {
+			$a[0] =~ /^\d+$/ && $a[0] <= 100 or die "dotctl: audio volume 0-100\n";
+			my $raw = int($a[0] * $VOL_MAX / 100 + 0.5);
+			mix_set('PCM Playback Volume', "$raw,$raw");
+			}
+		}
+	elsif ($sub eq 'tone') {
+		my ($secs, $hz) = ($a[0] // 2, $a[1] // 440);
+		$secs =~ /^\d+(\.\d+)?$/ && $secs > 0 && $secs <= 60 or die "dotctl: audio tone SECONDS (up to 60) [HZ]\n";
+		$hz =~ /^\d+$/ && $hz >= 20 && $hz <= 20000 or die "dotctl: the frequency is 20-20000 Hz\n";
+		audio_on();
+		open my $p, '|-', aplay_cmd('-f', 'S16_LE', '-r', 48000, '-c', 2) or die "dotctl: cannot run $APLAY\n";
+		binmode $p;
+		for my $i (0 .. int($secs * 48000) - 1) {
+			my $v = int(3000 * sin(2 * 3.14159265358979 * $hz * $i / 48000));
+			print $p pack('s<s<', $v, $v);
+			}
+		close $p or die "dotctl: $APLAY failed\n";
+		}
+	elsif ($sub eq 'play') {
+		my $f = $a[0];
+		defined $f && -r $f or die "dotctl: audio play FILE.wav\n";
+		audio_on();
+		system(aplay_cmd($f)) == 0 or die "dotctl: $APLAY failed\n";
+		}
+	else { usage() }
+	}
+
+sub cmd_lux {
+	my @f = (glob("$IIO/illuminance*_input"), glob("$IIO/in_illuminance*_input"), glob("$IIO/*illuminance*_raw"));
+	@f or die "dotctl: no light sensor under $IIO\n";
+	my $v = slurp($f[0]);
+	defined $v or die "dotctl: cannot read $f[0]\n";
+	print "$v\n";
+	}
+
+my %run = (led => \&cmd_led, mute => \&cmd_mute, buttons => \&cmd_buttons, bt => \&cmd_bt, audio => \&cmd_audio, lux => \&cmd_lux);
+my $cmd = shift @ARGV;
+usage() unless defined $cmd && $run{$cmd};
+eval { $run{$cmd}->(@ARGV); 1 } or do { print STDERR $@; exit 1 };

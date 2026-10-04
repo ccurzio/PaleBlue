@@ -1,0 +1,206 @@
+#!/bin/sh
+# paleblue-net [restart]: join Wi-Fi and keep a DHCP lease. Used by boot.sh, by wifi-set, and by the
+# rescue initramfs, so every path onto the network is the same one.
+#
+# The supplicant's own configuration is kept at /data/paleblue-linux/wpa_supplicant.conf and holds every
+# network the unit has been given: the daemon's setup page writes that file and has the supplicant
+# reread it, which only works if the supplicant was started against the same file, so it is the one
+# named here. It is built, the first time, from the network set with wifi-set
+# (/data/paleblue-linux/wifi.conf) or failing that the one Fire OS saved
+# (/data/misc/wifi/wpa_supplicant.conf), and rebuilt whenever wifi-set writes a newer one.
+#
+# The unit's name is /data/paleblue-linux/hostname (the installer writes it), and its address is DHCP
+# unless /data/paleblue-linux/static-ip exists: ADDR=, NETMASK=, GATEWAY= and DNS= lines, which the
+# installer writes for --ip. Delete the file to go back to DHCP.
+#
+# Nothing is typed at boot and nothing leaves the unit. Prints the address on success.
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+export PATH
+
+OWN=/data/paleblue-linux/wifi.conf
+ANDROID=/data/misc/wifi/wpa_supplicant.conf
+KEPT=/data/paleblue-linux/wpa_supplicant.conf
+CONF=/run/wpa_supplicant.conf
+LOG=/data/paleblue-linux
+[ -d $LOG ] || LOG=/tmp
+
+# The rescue initramfs has no /data, so it keeps to /run and the one network it was told about.
+[ -d /data/paleblue-linux ] && CONF=$KEPT
+
+STATIC=/data/paleblue-linux/static-ip
+
+# The name first, before any network: it is set whether or not Wi-Fi comes up. Anything that is not a
+# valid host name falls back to paleblue.
+HN=$(sed -n 1p /data/paleblue-linux/hostname 2>/dev/null)
+echo "$HN" | grep -Eq '^[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?$' || HN=paleblue
+echo "$HN" > /proc/sys/kernel/hostname 2>/dev/null
+echo "$HN" > /etc/hostname 2>/dev/null
+printf '127.0.0.1\tlocalhost %s\n::1\tlocalhost\n' "$HN" > /etc/hosts 2>/dev/null
+
+# To stderr only: under boot.sh that is the kernel log already, and at a console it is the terminal.
+say() { echo "paleblue-net: $*" >&2; }
+
+# android_network <file>: one network Fire OS saved, as two lines on stdout - the name, then the key,
+# both still in the syntax wpa_supplicant reads them in, and the key line empty for an open network.
+# Nothing is printed when the file holds no network this unit can join.
+#
+# A block at a time, because a network's name and its key have to come out of the same block. Reading
+# the first ssid= in the file together with the first psk= in the file pairs the name of one network
+# with the key of another the moment an open network is saved ahead of the secured one: the unit then
+# cannot associate, spends its boot attempts on a network that was never real, and lands in rescue.
+#
+# The first secured network, and only failing that an open one: an open network in the list is as
+# likely to be a coffee shop the unit will never see again as the one it lives on, and the unit can
+# only be started on one of them.
+android_network() {
+	[ -r "$1" ] || return 0
+	awk '
+	function v(s, k) { sub(/^[ \t]*/, "", s); sub("^" k "=", "", s); sub(/[ \t]*$/, "", s); return s }
+	/^[ \t]*network=/ { inb = 1; ssid = ""; psk = ""; km = "" ; next }
+	inb && /^[ \t]*}/ {
+		if (ssid != "" && psk != "") { print ssid; print psk; done = 1; exit }
+		if (ssid != "" && km ~ /NONE/ && open == "") open = ssid
+		inb = 0
+		next
+	}
+	inb && /^[ \t]*ssid=/     { ssid = v($0, "ssid") }
+	inb && /^[ \t]*psk=/      { psk  = v($0, "psk") }
+	inb && /^[ \t]*key_mgmt=/ { km   = v($0, "key_mgmt") }
+	END { if (!done && open != "") { print open; print "" } }
+	' "$1" 2>/dev/null
+}
+
+# associate starts the supplicant against $CONF and waits for it to get somewhere.
+associate() {
+	mkdir -p /run/wpa
+	wpa_supplicant -B -i wlan0 -D nl80211 -c $CONF >> $LOG/wpa.log 2>&1
+	i=0
+	while [ $i -lt 45 ]; do
+		[ "$(wpa_cli -p /run/wpa status 2>/dev/null | sed -n 's/^wpa_state=//p')" = COMPLETED ] && return 0
+		sleep 1
+		i=$((i + 1))
+	done
+	say "not associated after 45 s ($from)"
+	return 1
+}
+
+# static_ip sets the address from $STATIC, with its router and name servers, then prints it.
+static_ip() {
+	get() { sed -n "s/^$1=//p" $STATIC | head -1; }
+	a=$(get ADDR); m=$(get NETMASK); g=$(get GATEWAY); d=$(get DNS)
+	[ -n "$a" ] && [ -n "$m" ] && [ -n "$g" ] || { say "$STATIC needs ADDR, NETMASK and GATEWAY"; return 1; }
+	ifconfig wlan0 "$a" netmask "$m" up
+	while route del default gw 0.0.0.0 dev wlan0 2>/dev/null; do :; done
+	route add default gw "$g" dev wlan0
+	for s in ${d:-$g}; do echo "nameserver $s"; done > /etc/resolv.conf
+	say "address $a, static, on $(wpa_cli -p /run/wpa status 2>/dev/null | sed -n 's/^ssid=//p') ($from)"
+	echo "$a"
+}
+
+# lease asks for one and waits for an address, then prints it.
+lease() {
+	if [ -s $STATIC ]; then
+		static_ip
+		return $?
+	fi
+	# busybox's client hands a lease to a script or throws it away. It stays running (no -q), so the
+	# lease is renewed: a client that quits after the first lease keeps an address the router later
+	# gives away.
+	cat > /run/udhcpc.sh <<'EOF'
+#!/bin/sh
+case "$1" in
+deconfig)
+	ifconfig "$interface" 0.0.0.0
+	;;
+bound | renew)
+	ifconfig "$interface" "$ip" netmask "$subnet"
+	if [ -n "$router" ]; then
+		while route del default gw 0.0.0.0 dev "$interface" 2>/dev/null; do :; done
+		route add default gw "${router%% *}" dev "$interface"
+	fi
+	[ -n "$dns" ] && { for s in $dns; do echo "nameserver $s"; done > /etc/resolv.conf; }
+	;;
+esac
+EOF
+	chmod 755 /run/udhcpc.sh
+	udhcpc -i wlan0 -x "hostname:$HN" -s /run/udhcpc.sh -b -t 8 -p /run/udhcpc.pid >> $LOG/udhcpc.log 2>&1
+
+	i=0
+	while [ $i -lt 30 ]; do
+		# ifconfig rather than ip: the static busybox is not built with every applet.
+		IP=$(ifconfig wlan0 2>/dev/null | sed -n 's/.*inet addr:\([0-9.]*\).*/\1/p' | head -1)
+		[ -n "$IP" ] && break
+		sleep 1
+		i=$((i + 1))
+	done
+	[ -n "$IP" ] || { say "associated but no lease ($from)"; return 1; }
+	say "address $IP on $(wpa_cli -p /run/wpa status 2>/dev/null | sed -n 's/^ssid=//p') ($from)"
+	echo "$IP"
+}
+
+if [ "$1" = restart ]; then
+	killall udhcpc wpa_supplicant 2>/dev/null
+	sleep 1
+	ifconfig wlan0 0.0.0.0 2>/dev/null
+fi
+
+[ -e /sys/class/net/wlan0 ] || { say "no wlan0"; exit 1; }
+
+# Keep the unit's IPv6 addresses from spelling out its MAC. Linux builds the interface identifier
+# out of the hardware address by default, so a global address reads as the prefix the ISP handed out
+# followed by this Dot's own MAC, and goes on naming the hardware through every prefix change the
+# ISP ever makes. A random identifier says nothing and costs nothing here: the daemon is reached
+# over IPv4 and mDNS, never over IPv6.
+#
+# addr_gen_mode is the setting that does it and wants Linux 4.5; this unit runs 3.18, so it will not
+# be there and the log says so rather than leaving it a silent difference between devices. Temporary
+# addresses are set either way, for anything the unit itself starts. Before the link comes up: the
+# identifier is chosen when the address is generated, and one already there does not change.
+ipv6mode=
+for w in default wlan0; do
+	d=/proc/sys/net/ipv6/conf/$w
+	[ -d $d ] || continue
+	[ -e $d/use_tempaddr ] && echo 2 > $d/use_tempaddr 2>/dev/null
+	[ -e $d/addr_gen_mode ] || continue
+	echo 3 > $d/addr_gen_mode 2>/dev/null
+	ipv6mode=$(cat $d/addr_gen_mode 2>/dev/null)
+done
+case "$ipv6mode" in
+3) say "ipv6: addresses take a random identifier, not this unit's MAC" ;;
+"") say "ipv6: this kernel has no addr_gen_mode; addresses carry this unit's MAC" ;;
+*) say "ipv6: addr_gen_mode stayed $ipv6mode; addresses may still carry this unit's MAC" ;;
+esac
+
+# A configuration already built is the one to use, networks and all — unless wifi-set has written a
+# network since, which is somebody at the unit saying which one it is to be on.
+if [ -s $CONF ] && { [ ! -s $OWN ] || [ $CONF -nt $OWN ]; }; then
+	from="kept on the unit"
+	associate || exit 1
+	lease
+	exit $?
+fi
+
+if [ -s $OWN ]; then
+	ssid=$(sed -n 's/^ssid=//p' $OWN | head -1)
+	psk=$(sed -n 's/^psk=//p' $OWN | head -1)
+	from="set on the unit"
+	[ -n "$psk" ] || { say "no key in $OWN (wifi-set sets one)"; exit 1; }
+else
+	# Android's file carries fields its fork understands and ours does not (max_oper_chwidth), so the
+	# network block is rebuilt from the lines that matter - taken from one block, see android_network.
+	nw=$(android_network $ANDROID)
+	ssid=$(printf '%s\n' "$nw" | sed -n 1p)
+	psk=$(printf '%s\n' "$nw" | sed -n 2p)
+	from="saved by Fire OS"
+fi
+[ -n "$ssid" ] || { say "no network configured (wifi-set sets one)"; exit 1; }
+
+# An empty key is an open network, and says so: psk= with nothing after it is not a network at all.
+( umask 077
+  if [ -n "$psk" ]; then
+	printf 'ctrl_interface=/run/wpa\nupdate_config=0\nnetwork={\n\tssid=%s\n\tpsk=%s\n}\n' "$ssid" "$psk" > $CONF
+  else
+	printf 'ctrl_interface=/run/wpa\nupdate_config=0\nnetwork={\n\tssid=%s\n\tkey_mgmt=NONE\n}\n' "$ssid" > $CONF
+  fi )
+associate || exit 1
+lease

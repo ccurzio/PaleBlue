@@ -1,0 +1,48 @@
+#!/bin/sh
+# paleblue-firewall: nothing reaches the Dot from the network except SSH. Run by boot.sh and by the
+# rescue initramfs before the network comes up; safe to run again.
+#
+# In:  SSH (22/tcp), DHCP replies, ping, IPv6 neighbor discovery, and anything answering a connection
+#      the Dot made, so MQTT and any other client the Dot runs work without a rule.
+#      Anything you serve yourself is listed in /data/paleblue-linux/firewall-ports, one rule a line:
+#          tcp 1883
+#          udp 5353
+#          tcp 6000:6010
+#      Lines that are not a protocol and a port or range are ignored. It is read when this runs, i.e.
+#      at boot (or run /usr/local/sbin/paleblue-firewall again after editing).
+# Out: everything.
+#
+# The kernel has iptables but not nftables, so the legacy tools are the ones that work.
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+export PATH
+
+command -v iptables-legacy > /dev/null || { echo "paleblue-firewall: no iptables-legacy in this image" >&2; exit 1; }
+
+EXTRA=/data/paleblue-linux/firewall-ports
+
+for T in iptables-legacy ip6tables-legacy; do
+	# Open while the chain is rebuilt, so a rule that fails part way never leaves the unit unreachable
+	# with half a list; closed again at the end.
+	$T -P INPUT ACCEPT
+	$T -F INPUT
+	$T -A INPUT -i lo -j ACCEPT
+	$T -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+	$T -A INPUT -p tcp --dport 22 -j ACCEPT
+	# Your own ports. Validated by hand: the file is root's, but a typo must not abort the rebuild.
+	if [ -r $EXTRA ]; then
+		while read -r proto port rest; do
+			case "$proto" in tcp | udp) ;; *) continue ;; esac
+			case "$port" in '' | *[!0-9:]*) continue ;; esac
+			$T -A INPUT -p "$proto" --dport "$port" -j ACCEPT
+		done < $EXTRA
+	fi
+done
+iptables-legacy -A INPUT -p udp --sport 67 --dport 68 -j ACCEPT
+iptables-legacy -A INPUT -p icmp -j ACCEPT
+ip6tables-legacy -A INPUT -p ipv6-icmp -j ACCEPT
+ip6tables-legacy -A INPUT -p udp --sport 547 --dport 546 -j ACCEPT
+
+ok=1
+iptables-legacy -P INPUT DROP || ok=
+ip6tables-legacy -P INPUT DROP || ok=
+[ -n "$ok" ] && echo "paleblue-firewall: inbound closed except 22$([ -r $EXTRA ] && echo ' and /data/paleblue-linux/firewall-ports')" >&2

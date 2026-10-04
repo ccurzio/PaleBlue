@@ -1,0 +1,42 @@
+#!/bin/sh
+# paleblue-rootpw [save]: give root a password, and keep it across root filesystem slots.
+#
+# A fresh slot has root locked (Alpine's `root:*`). Run with no argument, from boot.sh and from the
+# rescue initramfs, this gives it the password kept in /data/paleblue-linux/root.hash, or the default,
+# "password", when nothing is kept yet. When root already has a password (you ran `passwd`) it keeps
+# that one in root.hash instead, so the next slot an update installs starts with the password you
+# chose rather than the default. `save` does only that second part; the shutdown script runs it, so
+# a password changed just before an update is not lost.
+#
+# Change it with `passwd` as usual. The default is public: change it.
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+export PATH
+SHADOW=${PALEBLUE_SHADOW:-/etc/shadow}
+STATE=${PALEBLUE_ROOTPW_STATE:-/data/paleblue-linux/root.hash}
+# sha512-crypt of "password". Regenerate with: openssl passwd -6 -salt <salt> <password>
+DEFAULT='$6$techo5dotsalt$ATN9lu3UF2VNm9.Z3lZhb5v21jFLYwJq2n6KvVUcT3OBOWmenNQjQioF0SkupbGtfUl62GIl0eOMXIOSIKUWQ.'
+
+[ -f "$SHADOW" ] || exit 0
+cur=$(awk -F: '$1 == "root" { print $2; exit }' "$SHADOW")
+case "$cur" in
+'' | '*' | '!' | '!!' | '!'* | '*'*) locked=1 ;;
+*) locked= ;;
+esac
+
+if [ -z "$locked" ]; then
+	# Root has a password: remember it (when there is a place to).
+	[ -d "$(dirname "$STATE")" ] && [ "$(cat "$STATE" 2>/dev/null)" != "$cur" ] &&
+		( umask 077; printf '%s\n' "$cur" > "$STATE.new" && mv -f "$STATE.new" "$STATE" )
+	exit 0
+fi
+[ "$1" = save ] && exit 0
+
+hash=$(sed -n '1p' "$STATE" 2>/dev/null)
+case "$hash" in '$'*) ;; *) hash=$DEFAULT ;; esac
+awk -F: -v OFS=: -v h="$hash" '$1 == "root" { $2 = h } { print }' "$SHADOW" > "$SHADOW.new" &&
+	chmod 640 "$SHADOW.new" && mv -f "$SHADOW.new" "$SHADOW"
+
+# dropbear lets a user in by password only if their shell is a listed one.
+shell=$(awk -F: '$1 == "root" { print $7; exit }' /etc/passwd 2>/dev/null)
+[ -n "$shell" ] && ! grep -qx "$shell" /etc/shells 2>/dev/null && echo "$shell" >> /etc/shells
+exit 0

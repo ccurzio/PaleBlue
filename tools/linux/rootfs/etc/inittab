@@ -1,0 +1,10 @@
+# busybox init in a rootfs slot. boot.sh runs once and brings the device up; the respawn entries are
+# ssh, your own service (paleblue-run), the console, and the log keeper. None may setsid or fork: under
+# busybox init a respawn that forks looks like an exit, and init spawns another every cycle.
+::sysinit:/etc/paleblue/boot.sh
+::respawn:/usr/local/sbin/paleblue-sshd
+::respawn:/usr/local/sbin/paleblue-run
+::respawn:/usr/local/sbin/paleblue-console
+::respawn:/usr/local/sbin/paleblue-logs
+::ctrlaltdel:/bin/busybox.static reboot
+::shutdown:/etc/paleblue/shutdown.sh

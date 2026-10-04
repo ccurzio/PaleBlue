@@ -1,0 +1,26 @@
+#!/bin/busybox.static sh
+# SSH, supervised by init: dropbear in the foreground on port 22. It is the one thing a headless unit
+# cannot do without, so it is not behind any switch.
+#
+# Root logs in with a password (paleblue-rootpw: "password" until you change it with passwd) or with a key
+# in /data/paleblue-linux/ssh/authorized_keys (/root/.ssh points there, see boot.sh). Host keys are in
+# /data/paleblue-linux/dropbear.
+#
+# This is dropbear, so there is no sshd_config. Its options are command-line flags, and any you put in
+# /data/paleblue-linux/dropbear.opts are added to ours (one line, e.g. `-s` for keys only, `-w` to refuse
+# root, `-p 2222` for another port in addition to 22, `-j -k` to refuse forwarding). They are read each
+# time dropbear starts: after editing, `kill $(cat /run/dropbear.pid)` and init starts it again. A port
+# other than 22 also needs a line in /data/paleblue-linux/firewall-ports.
+BB=/bin/busybox.static
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+export PATH
+while [ ! -e /run/paleblue/ready ]; do $BB sleep 1; done
+HOSTKEY=/data/paleblue-linux/dropbear/dropbear_ed25519_host_key
+LOG=/data/paleblue-linux
+[ -s $HOSTKEY ] || /usr/bin/dropbearkey -t ed25519 -f $HOSTKEY > /dev/null 2>&1
+OPTS=$($BB cat /data/paleblue-linux/dropbear.opts 2>/dev/null)
+$BB sleep 1
+# -F stays in the foreground (init respawns it); -P is the listener's pid, which paleblue-health reads:
+# pidof would also count the sessions. $OPTS is deliberately unquoted: it is a list of flags.
+# shellcheck disable=SC2086
+exec /usr/sbin/dropbear -F -r $HOSTKEY -P /run/dropbear.pid $OPTS >> $LOG/dropbear.log 2>&1

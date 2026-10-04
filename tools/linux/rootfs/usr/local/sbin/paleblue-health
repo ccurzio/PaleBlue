@@ -1,0 +1,14 @@
+#!/bin/busybox.static sh
+# paleblue-health: prints a token while the unit is healthy, and nothing when it is not.
+#
+# boot.sh calls this twice, 30 s apart, and calls the boot healthy only when both calls print the same
+# non-empty token (a service that crash-loops prints a different pid each time). A healthy boot commits
+# the slot and clears the try count; one that never gets there rolls a slot on trial back to the good
+# one, and five in a row park the unit in rescue.
+#
+# The default token is SSH's listener pid: if a slot cannot bring up SSH, nothing else about it matters.
+# Edit this to judge by your own service as well, e.g. print its pid when it is up and nothing when not:
+#   p=$(cat /run/yourapp.pid 2>/dev/null) && kill -0 "$p" 2>/dev/null && echo "$(cat /run/dropbear.pid)-$p"
+p=$(cat /run/dropbear.pid 2>/dev/null) || exit 0
+kill -0 "$p" 2>/dev/null && echo "$p"
+exit 0
