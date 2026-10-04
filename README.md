@@ -33,13 +33,14 @@ Once unlocked, unplug the Dot and then start it in recovery mode by plugging it 
 2. Move into the project directory: `cd PaleBlue`
 3. Execute a dry run of the installer: `python3 tools/install-dot.py --hostname "DotHostname" --wifi "YourNetwork" --dry-run`; this will create a backup of your Dot's boot and recovery partitions, fetch all of the required packages, and build the system image. We do a dry run first to create the backup and make sure everything builds successfully without writing to the Dot.
 4. If everything looks good, burn the image to the Dot for real: `python3 tools/install-dot.py --hostname "DotHostname" --wifi "YourNetwork"`
-5. A successful boot will show `slot a, PaleBlue Linux 1.0, address 169.254.0.27, SSH running`. You may see a message that says SSH on port 22 did not answer, but this isn't always indicative of a problem. Go ahead and connecting with SSH anyway. It'll probably work. 
+5. A successful boot will show `slot a, PaleBlue Linux 1.0, address 169.254.0.27, SSH running`. You may see a message on the computer that says SSH on port 22 did not answer, but this isn't always indicative of a problem. Go ahead and connecting with SSH anyway. It'll probably work. 
 
 **<ins>Installation Notes</ins>**
 - On Windows, you'll probably need to use `python` instead of `python3`. If it's not in your path, just replace `python3` in all of the commands with the full path to the `python` binary.
 - If you have only one Echo Dot connected to your computer, the installer should automatically detect it. If it doesn't (or if you have multiple Dots connected), specify the device by using `--serial "SERIALNUMBER"` with the installer. (You did remember to make a note of the serial number after running `adb devices`, right?)
 - By default, the device will try to configure the network interface with DHCP after connecting to the network. If you instead want to give the device a static IP, use the correct values with `python3 tools/install-dot.py --hostname "DotHostname" --wifi "YourNetwork" --ip 169.254.0.18/24 --gateway 169.254.0.1` and optionally `--dns 1.1.1.1,2.2.2.2`
-- You will be prompted to set the passphrase for the wireless network during the installation process. 
+- You will be prompted to set the passphrase for the wireless network during the installation process.
+- The LED ring will display a spinning animation while the device boots. Once booted, the ring should stop spinning and settle into a medium blue.
 - After the device has started up you can log into it as `root` using SSH. (The default password is "password" so change it ffs)
 - A wide-open root shell is available over the serial port connected through USB. On Windows you can access it through PuTTY. Open Device Manager, find "Ports," and make note of the COM port associated with the Dot. Then in PuTTY select "Serial" and enter that COM port. (You may have to hit enter after connecting to see the command prompt.) On macOS or Linux you can use a terminal emulator such as minicom. Find the port with `ls /dev/tty.*`; on macOS it'll be something like `/dev/tty.usbmodem14301`
 - If you want to restart the device in recovery mode, as root you can use `to-twrp --yes`
