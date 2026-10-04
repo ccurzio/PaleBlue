@@ -33,7 +33,7 @@ Once unlocked, unplug the Dot and then start it in recovery mode by plugging it 
 2. Move into the project directory: `cd PaleBlue`
 3. Execute a dry run of the installer: `python3 tools/install-dot.py --hostname "DotHostname" --wifi "YourNetwork" --dry-run`; this will create a backup of your Dot's boot and recovery partitions, fetch all of the required packages, and build the system image. We do a dry run first to create the backup and make sure everything builds successfully without writing to the Dot.
 4. If everything looks good, burn the image to the Dot for real: `python3 tools/install-dot.py --hostname "DotHostname" --wifi "YourNetwork"`
-5. A successful boot will show `slot a, PaleBlue Linux 1.0, address 169.254.0.27, SSH running`. You may see a message on the computer that says SSH on port 22 did not answer, but this isn't always indicative of a problem. Go ahead and connecting with SSH anyway. It'll probably work. 
+5. A successful boot will show `PaleBlue Linux 1.0, address 169.254.0.27, SSH running`. You may see a message on the computer that says SSH on port 22 did not answer, but this isn't always indicative of a problem. Go ahead and connecting with SSH anyway. It'll probably work. 
 
 **<ins>Installation Notes</ins>**
 - On Windows, you'll probably need to use `python` instead of `python3`. If it's not in your path, just replace `python3` in all of the commands with the full path to the `python` binary.
