@@ -64,7 +64,7 @@ The LED ring consists of 12 segments, numbered clockwise starting from the one b
 
 - Control of an individual segment is defined by `seg N COLOR` where `N` is the segment number (0-11).
 - A `frame` is one complete picture of the ring; the color of all 12 LEDs at one moment. On the device the current value is exposed at `/sys/bus/i2c/devices/0-003f/frame`, such as `0000a00000a00000a00000a00000a00000a00000a00000a00000a00000a00000a00000a0` showing the standard blue ring after booting.
-- You can use `bar PERCENT COLOR` to define a progress bar based on percentage starting at the first segment.
+- You can use `led bar PERCENT COLOR` to define a progress bar based on percentage starting at the first segment.
 - `led get` reads the current frame and returns the values as one line per segment, showing the segment number followed by its color.
 - `led current` returns the ring's current brightness, which can be set using `led current N` where `N` is a number between 0 and 3. (Lower is brighter.)
 - You can animate a single color spinner using `led spin COLOR`
