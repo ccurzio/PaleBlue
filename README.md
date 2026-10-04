@@ -55,8 +55,9 @@ Included with PaleBlue Linux is `dotctl`, a Perl script used for managing the ha
 **<ins>LED Ring</ins>**  
 The LED ring consists of 12 segments, numbered clockwise starting from the one between the mic and volume-down buttons.
 
-`dotctl led off | all COLOR | seg N COLOR | frame HEX72 | bar PERCENT COLOR | get | current N | anim on|off`
-`dotctl led spin COLOR | pulse COLOR SECS`
+`dotctl led off | all COLOR | seg N COLOR | frame HEX72 | bar PERCENT COLOR | get | current N | anim on|off`  
+`dotctl led spin COLOR | pulse COLOR SECS`  
+`dotctl mute led bright | dim`  
 
 `COLOR` is RRGGBB or #RRGGBB, or one of: red green blue white yellow cyan magenta orange
 
@@ -68,6 +69,19 @@ The LED ring consists of 12 segments, numbered clockwise starting from the one b
 - You can animate a single color spinner using `led spin COLOR`
 - To make the entire ring "breathe" use `led pulse COLOR SECS` where `SECS` defines the number of seconds per-breath. (Decimals work. To an extent.)
 - The LED driver's built-in spinner animation can be controlled using `led anim on` or `off`
+- When mute is on and the mute button is lit, you can control its brightness with `mute led bright` or `dim`
+
+**<ins>Audio</ins>**  
+The Dot's audio device is actually fairly decent for the form factor it's crammed into. That said, it's not amazing so don't expect miracles. It's fine for playing beeps and boops and voice audio now and again. You can play music through it but I'm not sure you'd want to.
+
+`dotctl audio on | off | status | volume [0-100] | tone SECS HZ | play FILE.wav`  
+`dotctl mute on | off | status | toggle`
+
+- `audio status` returns the current audio state and volume level.
+- You can set volume with `audio volume [0-100] (Higher is louder.)
+- You can play an audio tone using `audio tone SECS HZ` where SECS is the number of seconds the tone should last and HZ is the tone frequency in hertz.
+- Play an audio file with `audio play FILE.wav`. (Only WAV files are supported right now.)
+- The current microphone state can be retrieved with `mute status`. Cut the device's microphone with `mute on` and re-enable it with `off`. `mute toggle` simply reads the current state and flips it.
 
 ## Special Thanks
 - The TECHO5 Team
