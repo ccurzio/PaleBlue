@@ -1,4 +1,1 @@
-PaleBlue Linux 0.1: Alpine on the Echo Dot 2. State is on /data (/data/paleblue-linux), slots are
-managed with slotctl, your service is /data/paleblue-linux/app/run (see paleblue-run), inbound ports are
-opened in /data/paleblue-linux/firewall-ports.
-
+Welcome to PaleBlue Linux
