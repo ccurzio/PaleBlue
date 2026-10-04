@@ -93,10 +93,10 @@ For actions involving the hardware buttons, you can read the current values with
 If you want the buttons to trigger actions in the background, use `buttons --hooks DIR` where `DIR` is the path to where you've stashed some scripts to run (set with +x) based on what's happening with the buttons. For example, if you want something in `/scripts` to run when the action button is pressed, create `/scripts/action-press` and make it executable.
 
 **<ins>Bluetooth</ins>**  
-`dotctl bt status | on | off | scan SECS`  
-`dotctl bt devices paired | connected | trusted | bonded`  
-`dotctl bt pair MAC | connect MAC | disconnect MAC | trust MAC | remove MAC`  
-`dotctl bt discoverable on | off`  
+`dotctl bt [status|on|off|scan SECS]`  
+`dotctl bt devices [paired|connected|trusted|bonded]`  
+`dotctl bt [pair|connect|disconnect|trust|remove] MAC`  
+`dotctl bt discoverable [on|off]`  
 `dotctl bt name TEXT`  
 `dotctl bt accept SECS`  
 
