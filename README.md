@@ -116,6 +116,12 @@ You can also temporarily set the Dot to act as an open Bluetooth speaker using `
 **<ins>Light Sensor</ins>**  
 `dotctl lux` returns the current value of the Dot's ambient light sensor.
 
+## To-Do List
+This project is brand new so this list is short, but I imagine I will add things as I think of them. 
+
+- Expanded audio support through `dotctl audio play`
+- A native Windows installer that doesn't need Python (PowerShell?)
+
 ## Special Thanks
 - The TECHO5 Team
 - Yuri Gelfand
