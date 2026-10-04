@@ -55,7 +55,8 @@ Included with PaleBlue Linux is `dotctl`, a Perl script used for managing the ha
 **<ins>LED Ring</ins>**  
 The LED ring consists of 12 segments, numbered clockwise starting from the one between the mic and volume-down buttons.
 
-`dotctl led off | all COLOR | seg N COLOR | frame HEX72 | bar PERCENT COLOR | get | current N | anim on|off`  
+`dotctl led off | all COLOR | seg N COLOR | frame HEX72 | bar PERCENT COLOR | get | current N`  
+`dotctl led anim on | off`  
 `dotctl led spin COLOR | pulse COLOR SECS`  
 `dotctl mute led bright | dim`  
 
@@ -82,6 +83,13 @@ The Dot's audio device is actually fairly decent for the form factor it's cramme
 - You can play an audio tone using `audio tone SECS HZ` where SECS is the number of seconds the tone should last and HZ is the tone frequency in hertz.
 - Play an audio file with `audio play FILE.wav`. (Only WAV files are supported right now.)
 - The current microphone state can be retrieved with `mute status`. Cut the device's microphone with `mute on` and re-enable it with `off`. `mute toggle` simply reads the current state and flips it.
+
+**<ins>Buttons</ins>**  
+`dotctl buttons --hold SECS | --hooks DIR`  
+
+For actions involving the hardware buttons, you can read the current values with `dotctl buttons`. Until interrupted, each time a button is pressed you will see one of `volume-up`, `volume-down`, `action`, and `mute` along with a state of `press`, `hold`, or `release`. If you want to register a button hold after a specific amount of seconds, use `buttons --hold N` where N is the number of seconds until a hold is registered.
+
+If you want the buttons to trigger actions in the background, use `buttons --hooks DIR` where `DIR` is the path to where you've stashed some scripts to run (set with +x) based on what's happening with the buttons. For example, if you want something in `/scripts` to run when the action button is pressed, create `/scripts/action-press` and make it executable.
 
 ## Special Thanks
 - The TECHO5 Team
