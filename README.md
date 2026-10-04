@@ -104,8 +104,8 @@ If you want the buttons to trigger actions in the background, use `buttons --hoo
 - Set the Dot's discoverability via Bluetooth with `bt discoverable on` or `off`
 - `bt status` returns the current state and details of the Bluetooth controller.
 - `bt scan SECS` turns on discovery and listens for nearby devices for the specified number of seconds, then stops scanning.
-- `bt devices` lists devices currently `paired` with the Dot, `connected` to the Dot, `trusted` by the Dot indicating a device can (re)connect without authorization, or `bonded` indicating a device has been paired with its link key stored allowing for reconnecting without re-pairing
-- Pair with a detected device with `bt pair MAC` where MAC is the hardware address of the device you want to pair.
+- `bt devices` lists devices currently `paired` with the Dot, `connected` to the Dot, `trusted` by the Dot indicating a device can (re)connect without authorization, or `bonded` indicating a device has been paired with its link key stored allowing for reconnecting without re-pairing.
+- Pair with a detected device with `bt pair MAC` where `MAC` is the hardware address of the device you want to pair.
 - Connect to a detected device with `bt connect MAC`. You can disconnect with `bt disconnect MAC`
 - Set a device as trusted with `bt trust MAC`
 - Completely remove an associated device with `bt remove MAC`
