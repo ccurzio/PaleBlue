@@ -47,7 +47,27 @@ Once unlocked, unplug the Dot and then start it in recovery mode by plugging it 
 - If you want to restart the device in recovery mode, as root you can use `to-twrp --yes`
 - If you're in recovery mode and you want to boot normally without making any further changes, use `adb shell sh /cache/paleblue/back-to-linux.sh`
 - Once you've confirmed the device boots properly and you can get in via SSH, you can and probably should go ahead and disable that serial root shell. Edit `/etc/inittab` and comment out the `paleblue-console` entry. (Or just use: `sed -i 's|^::respawn:/usr/local/sbin/paleblue-console|#&|' /etc/inittab`.) Once the change is saved, the serial console will be disabled on the next reboot.
-- If you don't like nano, don't worry. vi is included as well. 
+- If you don't like nano, don't worry. vi is included as well.
+
+## PaleBlue Dot Hardware Manager 
+Included with PaleBlue Linux is `dotctl`, a Perl script used for managing the hardware of the Echo Dot. With this tool you can manage the LEDs, the hardware buttons, Bluetooth, audio, the mute function, and the light sensor.
+
+**<ins>LED Ring</ins>**  
+The LED ring consists of 12 segments, numbered clockwise starting from the one between the mic and volume-down buttons.
+
+`dotctl led off | all COLOR | seg N COLOR | frame HEX72 | bar PERCENT COLOR | get | current N | anim on|off`
+`dotctl led spin COLOR | pulse COLOR SECS`
+
+`COLOR` is RRGGBB or #RRGGBB, or one of: red green blue white yellow cyan magenta orange
+
+- Control of an individual segment is defined by `seg`.
+- A `frame` is one complete picture of the ring; the color of all 12 LEDs at one moment. On the device the current value is exposed at `/sys/bus/i2c/devices/0-003f/frame`, such as `0000a00000a00000a00000a00000a00000a00000a00000a00000a00000a00000a00000a0` showing the standard blue ring after booting.
+- You can use `bar` to define a progress bar starting at the first segment.
+- `led get` reads the current frame and returns the values as one line per segment, showing the segment number followed by its color.
+- `led current` returns the ring's current brightness, which can be set using `led current N` where `N` is a number between 0 and 3. (Lower is brighter.)
+- You can animate a single color spinner using `led spin COLOR`
+- To make the entire ring "breathe" use `led pulse COLOR SECS` where `SECS` defines the number of seconds per-breath. (Decimals work. To an extent.)
+- The LED driver's built-in spinner animation can be controlled using `led anim on` or `off`
 
 ## Special Thanks
 - The TECHO5 Team
