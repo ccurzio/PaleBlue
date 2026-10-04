@@ -55,10 +55,10 @@ Included with PaleBlue Linux is `dotctl`, a Perl script used for managing the ha
 **<ins>LED Ring</ins>**  
 The LED ring consists of 12 segments, numbered clockwise starting from the one between the mic and volume-down buttons.
 
-`dotctl led off | all COLOR | seg N COLOR | frame HEX72 | bar PERCENT COLOR | get | current N`  
-`dotctl led anim on | off`  
-`dotctl led spin COLOR | pulse COLOR SECS`  
-`dotctl mute led bright | dim`  
+`dotctl led [off|all COLOR|seg N COLOR|frame HEX72|bar PERCENT COLOR|get|current N]`  
+`dotctl led anim [on|off]`  
+`dotctl led [spin COLOR|pulse COLOR SECS]`  
+`dotctl mute led [bright|dim]`  
 
 `COLOR` is RRGGBB or #RRGGBB, or one of: red green blue white yellow cyan magenta orange
 
@@ -75,9 +75,10 @@ The LED ring consists of 12 segments, numbered clockwise starting from the one b
 **<ins>Audio</ins>**  
 The Dot's audio device is actually fairly decent for the form factor it's crammed into. That said, it's not amazing so don't expect miracles. It's fine for playing beeps and boops and voice audio now and again. You can play music through it but I'm not sure you'd want to.
 
-`dotctl audio on | off | status | volume [0-100] | tone SECS HZ | play FILE.wav`  
-`dotctl mute on | off | status | toggle`
+`dotctl audio [on|off|status|volume [0-100]|tone SECS HZ|play FILE.wav]`  
+`dotctl mute [on|off|status|toggle]`  
 
+- You can turn audio on and off with `audio on` or `off`
 - `audio status` returns the current audio state and volume level.
 - You can set volume with `audio volume [0-100] (Higher is louder.)
 - You can play an audio tone using `audio tone SECS HZ` where SECS is the number of seconds the tone should last and HZ is the tone frequency in hertz.
@@ -90,6 +91,30 @@ The Dot's audio device is actually fairly decent for the form factor it's cramme
 For actions involving the hardware buttons, you can read the current values with `dotctl buttons`. Until interrupted, each time a button is pressed you will see one of `volume-up`, `volume-down`, `action`, and `mute` along with a state of `press`, `hold`, or `release`. If you want to register a button hold after a specific amount of seconds, use `buttons --hold N` where N is the number of seconds until a hold is registered.
 
 If you want the buttons to trigger actions in the background, use `buttons --hooks DIR` where `DIR` is the path to where you've stashed some scripts to run (set with +x) based on what's happening with the buttons. For example, if you want something in `/scripts` to run when the action button is pressed, create `/scripts/action-press` and make it executable.
+
+**<ins>Bluetooth</ins>**  
+`dotctl bt status | on | off | scan SECS`  
+`dotctl bt devices paired | connected | trusted | bonded`. 
+`dotctl bt pair MAC | connect MAC | disconnect MAC | trust MAC | remove MAC`  
+`dotctl bt discoverable on | off`  
+`dotctl bt name TEXT`  
+`dotctl bt accept SECS`  
+
+- You can turn Bluetooth on and off with `bt on` or `off`
+- Set the Dot's discoverability via Bluetooth with `bt discoverable on` or `off`
+- `bt status` returns the current state and details of the Bluetooth controller.
+- `bt scan SECS` turns on discovery and listens for nearby devices for the specified number of seconds, then stops scanning.
+- `bt devices` lists devices currently `paired` with the Dot, `connected` to the Dot, `trusted` by the Dot indicating a device can (re)connect without authorization, or `bonded` indicating a device has been paired with its link key stored allowing for reconnecting without re-pairing
+- Pair with a detected device with `bt pair MAC` where MAC is the hardware address of the device you want to pair.
+- Connect to a detected device with `bt connect MAC`. You can disconnect with `bt disconnect MAC`
+- Set a device as trusted with `bt trust MAC`
+- Completely remove an associated device with `bt remove MAC`
+- `bt name TEXT` sets the name other devices see when they scan for the Dot. Names can contain spaces, just wrap it in quotes for readability.
+
+You can also temporarily set the Dot to act as an open Bluetooth speaker using `bt accept SECS` where `SECS` is the number of seconds it should be available. No PIN or confirmation is asked, so any pairing request is accepted. After `SECS` expires, discoverability is turned off and the device is disconnected. This allows for a phone to connect and become trusted without needing to futz with settings or have login access to the device.
+
+**<ins>Light Sensor</ins>**  
+`dotctl lux` returns the current value of the Dot's ambient light sensor.
 
 ## Special Thanks
 - The TECHO5 Team
