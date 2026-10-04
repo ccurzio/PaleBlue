@@ -37,7 +37,7 @@ Once unlocked, unplug the Dot and then start it in recovery mode by plugging it 
 
 **<ins>Installation Notes</ins>**
 - On Windows, you'll probably need to use `python` instead of `python3`. If it's not in your path, just replace `python3` in all of the commands with the full path to the `python` binary.
-- If you have only one Echo Dot connected to your computer, the installer should automatically detect it. If it doesn't (or if you have multiple Dots connected), specify the device by using `--serial "SERIALNUMBER"` with the installer. (You did remember to make a note of the serial number after running `adb devices`, right?)
+- If you have only one Echo Dot connected to your computer, the installer should automatically detect it. If it doesn't (or if you have multiple Dots connected), specify the device by using `--serial "SERIALNUMBER"` in the installer command line. (You did remember to make a note of the serial number after running `adb devices`, right?)
 - By default, the device will try to configure the network interface with DHCP after connecting to the network. If you instead want to give the device a static IP, use the correct values with `python3 tools/install-dot.py --hostname "DotHostname" --wifi "YourNetwork" --ip 169.254.0.18/24 --gateway 169.254.0.1` and optionally `--dns 1.1.1.1,2.2.2.2`
 - You will be prompted to set the passphrase for the wireless network during the installation process.
 - The LED ring will display a spinning animation while the device boots. Once booted, the ring should stop spinning and settle into a medium blue.
