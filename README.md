@@ -46,7 +46,7 @@ Once unlocked, unplug the Dot and then start it in recovery mode by plugging it 
 - A wide-open root shell is available over the serial port connected through USB. On Windows you can access it through PuTTY. Open Device Manager, find "Ports," and make note of the COM port associated with the Dot. Then in PuTTY select "Serial" and enter that COM port. (You may have to hit enter after connecting to see the command prompt.) On macOS or Linux you can use a terminal emulator such as minicom. Find the port with `ls /dev/tty.*`; on macOS it'll be something like `/dev/tty.usbmodem14301`
 - If you want to restart the device in recovery mode, as root you can use `to-twrp --yes`
 - If you're in recovery mode and you want to boot normally without making any further changes, use `adb shell sh /cache/paleblue/back-to-linux.sh`
-- Once you've confirmed the device boots properly and that you can get in via SSH, you can and probably should go ahead and disable that serial root shell: `sed -i 's|^::respawn:/usr/local/sbin/paleblue-console|#&|' /etc/inittab` and then reboot.
+- Once you've confirmed the device boots properly and you can get in via SSH, you can and probably should go ahead and disable that serial root shell. Edit `/etc/inittab` and comment out the `paleblue-console` entry. (Or just use: `sed -i 's|^::respawn:/usr/local/sbin/paleblue-console|#&|' /etc/inittab`.) Once the change is saved, the serial console will be disabled on the next reboot.
 - If you don't like nano, don't worry. vi is included as well. 
 
 ## Special Thanks
