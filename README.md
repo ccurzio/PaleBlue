@@ -86,7 +86,7 @@ The Dot's audio device is actually fairly decent for the form factor it's cramme
 - The current microphone state can be retrieved with `mute status`. Cut the device's microphone with `mute on` and re-enable it with `off`. `mute toggle` simply reads the current state and flips it.
 
 **<ins>Buttons</ins>**  
-`dotctl buttons --hold SECS | --hooks DIR`  
+`dotctl buttons [--hold SECS|--hooks DIR]`  
 
 For actions involving the hardware buttons, you can read the current values with `dotctl buttons`. Until interrupted, each time a button is pressed you will see one of `volume-up`, `volume-down`, `action`, and `mute` along with a state of `press`, `hold`, or `release`. If you want to register a button hold after a specific amount of seconds, use `buttons --hold N` where N is the number of seconds until a hold is registered.
 
