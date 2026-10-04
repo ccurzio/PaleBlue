@@ -1,0 +1,86 @@
+PaleBlue Linux builds on the work of other open-source projects. Some of that code is retained
+and is included in its original unmodified form, and in other instances that code has been modified
+to varying degrees, or PaleBlue's code merely uses concepts from these other projects. All projects 
+which contributed to PaleBlue's development are listed here.
+
+
+TECHO5-Dot, https://github.com/HuskerMinion/techo5-dot (MIT)
+  Linux operating system for the Amazon Echo Dot, based on Alpine Linux and designed for Home
+  Assistant integration.
+
+TECHO5, https://github.com/HuskerMinion/techo5 (MIT)
+  The echod daemon (dot build), the Linux image tooling and the rootfs slot design.
+
+EchoLocal, https://github.com/ygelfand/echolocal
+  Copyright (c) 2026 Yuri Gelfand, MIT License.
+  The Echo Dot 2 daemon this project is built on: the daemon in every release (TECHO5's echod, dot
+  build) began as EchoLocal's code, vendored whole, and much of it still is. Hardware facts from it
+  are recorded in docs/hardware.md. EchoLocal's license applies to that code:
+
+  MIT License
+
+  Copyright (c) 2026 Yuri Gelfand
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in all
+  copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  SOFTWARE.
+
+EchoMuse / emOS, https://github.com/wilbowes/EchoMuse
+  Copyright (c) 2026 Wil Bowes, MIT License.
+  Linux bring-up and microphone array findings on biscuit, cited in docs/.
+
+proffalken (@proffalken), https://github.com/proffalken
+  "Installing TECHO5 Dot on Linux", https://gist.github.com/proffalken/377ae50146affe1886dddaaacb87926b
+  The step-by-step install (Fire OS 6574.1 in both slots, root, trusting the adb key) and the Linux
+  fixes (byte-safe partition backups, serial console lookup, forward-slash paths) that
+  tools/install-dot.py and TECHO5's docs/getting-started.md are based on.
+
+amonet, kaeru and the biscuit TWRP tree, https://github.com/R0rt1z2
+  The unlock and bootloader payload this project depends on (not redistributed).
+
+lineageos-echo-show-camera, https://github.com/jxlarrea/lineageos-echo-show-camera
+  Echo cancellation and microphone array measurements on the Echo Show family, cited in docs/.
+
+bluez-alsa, https://github.com/arkq/bluez-alsa
+  Copyright (c) arkq, MIT License. tools/linux/bluealsa-patches carries upstream commit 6ccf455;
+  the release root filesystem includes bluealsa 4.3.1 built from source with it.
+
+Linux kernel, https://git.kernel.org (GPL-2.0)
+  Every release ships a kernel: techo5-dot-kernel-bt.zImage-dtb, Linux 3.18.19 for 32-bit ARM. It is
+  GPL-2.0, and this is where its source is.
+    - Base: Amazon's GPL source release for the Echo Dot (2nd Generation),
+      Echo_Dot_src-6.5.7.1-20251024, kernel/mediatek/mt8163/3.18_hl inside platform.tar. Amazon
+      publish their source releases at
+      https://www.amazon.com/gp/help/customer/display.html?nodeId=G202096090 (docs/hardware.md).
+    - Bluetooth: Amazon's tarball carries only the files their build compiles, so net/bluetooth,
+      drivers/bluetooth and include/net/bluetooth are taken from upstream linux-3.18.19, and only
+      where Amazon's tree has no file of its own.
+    - Changes: the 48 patches in tools/linux/kernel-patches, applied in order, each naming its
+      upstream commit, the stable backport it came from, its CVE and any 3.18 adaptation.
+    - Configuration: built from the running kernel's own config, recorded as
+      docs/dumps/biscuit-fireos6-echolocal-boot-3.18.19.config.
+    - The script that does all of it is tools/linux/build-kernel.sh, and docs/building.md is how to
+      run it. A rebuild reproduces the shipped image.
+  Boot images, which wrap that kernel with a unit's own ramdisk, are built per unit and not
+  distributed.
+
+Alpine Linux, https://alpinelinux.org
+  The release root filesystem is assembled from Alpine 3.24 armv7 packages, unmodified except
+  bluealsa; each package keeps its own license, and its source is published by Alpine.
+
+docs/dumps/*.config are kernel configurations generated from Amazon's GPL 3.18.19 kernel for
+biscuit, as embedded in the published boot images.
