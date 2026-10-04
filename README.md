@@ -8,7 +8,7 @@ Welcome to the PaleBlue Linux project. PaleBlue is a small Linux distribution fo
 ## What's Included? 
 In addition to busybox and standard core system utilities, PaleBlue also includes:
 
-- **BlueZ**: Bluetooth support
+- **Networking**: Full Wi-Fi support as well as Bluetooth support via BlueZ
 - **Dropbear**: A lightweight SSH server
 - **PERL**: Larry Wall's Practical Extraction and Report Language
 - **GNU Nano**: The friendly console text editor, based on the PIne COmposer (or "pico")
