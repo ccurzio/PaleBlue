@@ -5,6 +5,7 @@ v0.1.1 (05-OCT-26)
   stream being sent to the hardware isn't out of bounds in relation to its
   capabilities.
 - Modified "dotctl" to work with the audiowedge daemon.
+- Added call to "dotctl" in /etc/inittab to set default volume on startup.
 - Added file-5.47-r2
 - Added openssl-sftp-server-10.3p1-r1
 - Bumped libcrypto to 3.5.9-r0
