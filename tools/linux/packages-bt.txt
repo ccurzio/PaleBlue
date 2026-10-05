@@ -11,7 +11,7 @@ glib-2.88.1-r1.apk
 json-c-0.18-r1.apk
 libblkid-2.42.3-r1.apk
 libeconf-0.8.3-r0.apk
-libexpat-2.8.4-r0.apk
+libexpat-2.8.5-r0.apk
 libffi-3.5.2-r1.apk
 libfreeaptx-0.2.2-r0.apk
 libgcc-15.2.0-r5.apk
@@ -26,7 +26,7 @@ libwebp-1.6.0-r0.apk
 mpg123-libs-1.33.5-r0.apk
 ncurses-terminfo-base-6.6_p20260516-r0.apk
 opus-1.6.1-r0.apk
-pcre2-10.48-r0.apk
+pcre2-10.49-r0.apk
 readline-8.3.3-r1.apk
 sbc-2.1-r0.apk
 spandsp-0.0.6-r5.apk

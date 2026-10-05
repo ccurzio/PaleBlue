@@ -7,6 +7,8 @@
 tzdata-2026d-r0.apk
 libbz2-1.0.8-r6.apk
 musl-1.2.6-r2.apk
+libmagic-5.47-r2.apk
+file-5.47-r2.apk
 libncursesw-6.6_p20260516-r0.apk
 ncurses-terminfo-base-6.6_p20260516-r0.apk
 nano-9.2-r0.apk
@@ -20,3 +22,4 @@ alsa-lib-1.2.15.3-r0.apk
 alsa-ucm-conf-1.2.16.1-r0.apk
 alsa-utils-1.2.15.2-r1.apk
 alsaconf-1.2.15.2-r1.apk
+openssh-sftp-server-10.3_p1-r1.apk
