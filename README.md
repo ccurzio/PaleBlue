@@ -120,9 +120,8 @@ You can also temporarily set the Dot to act as an open Bluetooth speaker using `
 `dotctl lux` returns the current value of the Dot's ambient light sensor.
 
 ## Known Issues
-- The audio hardware reeeeaaaallly doesn't like anything other than 48 kHz Stereo. Feeding it anything else might simply not play, or it might panic the kernel and reboot. Currently experimenting with a subroutine in `dotctl` to convert WAVs on-the-fly since ALSA's resampler crashes. As it stands right now, `dotctl audio play` doesn't quite work.
-- Playing a sound is preceded by a pop from opening the audio device. TECHO5 fixes this with an always-on daemon streaming silence to the hardware except when actual audio is playing. Something to consider.
-- SCP doesn't work. (needs `sftp-server`)
+
+
 
 ## To-Do List
 This project is brand new so this list is short, but I imagine I will add things as I think of them. 
