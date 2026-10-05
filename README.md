@@ -24,6 +24,8 @@ In addition to busybox and standard core system utilities, PaleBlue also include
 - Python installed on the computer (should already be there on Mac or Linux)
 - A micro USB cable to connect the Echo Dot to the computer
 
+**<ins>IMPORTANT</ins>**: By using PaleBlue Linux or any of its related tools, you agree that you do so at your own risk. This is warranty-voiding software with a nonzero chance of making your Amazon device inoperable - possibly with unpredictable side effects - so that or any other damage or injury which occurs as a result of your use of this software is not my responsibility.
+
 ## Installation 
 The `adb` utility is included as part of the Android SDK Platform Tools. Downloads for Mac, Linux, and Windows can be found [here](https://developer.android.com/tools/releases/platform-tools).
 
