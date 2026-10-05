@@ -132,6 +132,9 @@ This project is brand new so this list is short, but I imagine I will add things
 - Fix/improve SSH service detection in the installer
 - More advanced setup (create ad-hoc wireless network and configure over HTTP?)
 - Maybe add some manner of Python? (BEGRUDGINGLY)
+- In-place OS Updates
+- Add function to clear root's shell history on first boot since it's littered with trash at the moment
+- Add install option to clear out /data during installation
 
 ## Special Thanks
 - The TECHO5 Team
