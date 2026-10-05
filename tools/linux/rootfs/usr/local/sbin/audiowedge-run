@@ -1,0 +1,7 @@
+#!/bin/busybox.static sh
+# AudioWedge Service, supervised by init.
+BB=/bin/busybox.static
+while [ ! -e /run/paleblue/ready ]; do $BB sleep 1; done
+while [ -e /run/audiowedge.hold ]; do $BB sleep 5; done
+$BB sleep 2
+exec /usr/bin/perl /usr/local/sbin/audiowedge.pl /data/paleblue-linux/audiowedge.log 2>&1

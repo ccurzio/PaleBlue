@@ -35,7 +35,7 @@ my $ALS = $ENV{DOTCTL_ALS} // '/sys/bus/i2c/devices/0-0039';
 
 # The mixer's raw volume is 0.5 dB a step with 127 at 0 dB (the control goes on to +24 dB, which clips).
 my $VOL_MAX = 127;
-my $VOL_DEFAULT = 90;
+my $VOL_DEFAULT = 50;
 
 sub usage {
 	open my $f, '<', $0 or exit 2;
@@ -153,7 +153,7 @@ sub cmd_led {
 			}
 		frame_put(('000000') x 12);
 		}
-	else { usage() }
+	else { usage(); }
 	}
 
 sub muted {
@@ -190,9 +190,9 @@ sub cmd_mute {
 			}
 		elsif ($v eq 'bright') { spew("$PRIV/privacy_brightness", '0') }
 		elsif ($v eq 'dim') { spew("$PRIV/privacy_brightness", '1') }
-		else { usage() }
+		else { usage(); }
 		}
-	else { usage() }
+	else { usage(); }
 	}
 
 sub cmd_buttons {
@@ -352,7 +352,7 @@ sub cmd_bt {
 		defined $a[0] && length $a[0] or die "dotctl: bt name TEXT\n";
 		bt('system-alias', join ' ', @a);
 		}
-	else { usage() }
+	else { usage(); }
 	}
 
 sub mix_set {
@@ -418,21 +418,105 @@ sub cmd_audio {
 		$secs =~ /^\d+(\.\d+)?$/ && $secs > 0 && $secs <= 60 or die "dotctl: audio tone SECONDS (up to 60) [HZ]\n";
 		$hz =~ /^\d+$/ && $hz >= 20 && $hz <= 20000 or die "dotctl: the frequency is 20-20000 Hz\n";
 		audio_on();
-		open my $p, '|-', aplay_cmd('-f', 'S16_LE', '-r', 48000, '-c', 2) or die "dotctl: cannot run $APLAY\n";
-		binmode $p;
+		my $p = pcm_out();
 		for my $i (0 .. int($secs * 48000) - 1) {
 			my $v = int(3000 * sin(2 * 3.14159265358979 * $hz * $i / 48000));
 			print $p pack('s<s<', $v, $v);
 			}
 		close $p or die "dotctl: $APLAY failed\n";
 		}
+	# As support for more audio formats is added we will need to analyze the file
+	# before playing to figure out what it is so we route to the correct "play"
+	# method.
 	elsif ($sub eq 'play') {
 		my $f = $a[0];
 		defined $f && -r $f or die "dotctl: audio play FILE.wav\n";
-		audio_on();
-		system(aplay_cmd($f)) == 0 or die "dotctl: $APLAY failed\n";
+		# The hardware driver is rejecting a 44.1 kHz WAV for some reason? Changing
+		# this to use a subroutine which resamples to 48 kHz on the fly.
+		#audio_on();
+		#system(aplay_cmd($f)) == 0 or die "dotctl: $APLAY failed\n";
+		play_wav($f);
 		}
-	else { usage() }
+	elsif ($sub eq 'devices') {
+		system(aplay_cmd('-l'));
+		}
+	else { usage(); }
+	}
+
+sub pcm_out {
+	my $fifo = '/run/dotplay';
+	if (-p $fifo && sysopen(my $fh, $fifo, Fcntl::O_WRONLY() | Fcntl::O_NONBLOCK())) {
+		my $fl = fcntl($fh, Fcntl::F_GETFL(), 0);
+		fcntl($fh, Fcntl::F_SETFL(), $fl & ~Fcntl::O_NONBLOCK());
+		binmode $fh;
+		flock($fh, Fcntl::LOCK_EX());
+		return $fh;
+		}
+	open my $ph, '|-', aplay_cmd('-f', 'S16_LE', '-r', 48000, '-c', 2) or die "dotctl: cannot run $APLAY\n";
+	binmode $ph;
+	return $ph;
+	}
+	
+sub play_wav {
+	my ($file) = @_;
+	my ($OR, $OC) = (48000, 2);
+
+	open my $fh, '<:raw', $file or die "dotctl: $file: $!\n";
+	my $buf = do { local $/; <$fh> };
+	close $fh;
+	die "dotctl: $file is not a WAV\n" unless substr($buf,0,4) eq 'RIFF' && substr($buf,8,4) eq 'WAVE';
+
+	my ($ich, $irate, $data);
+	my $p = 12;
+	while ($p + 8 <= length $buf) {
+		my ($id, $len) = unpack 'a4 V', substr($buf, $p, 8);
+		if ($id eq 'fmt ') {
+			my ($fmt, $c, $r) = unpack 'v v V', substr($buf, $p + 8, 8);
+			my $bits = unpack 'v', substr($buf, $p + 22, 2);
+			die "dotctl: $file must be 16-bit PCM\n" unless ($fmt == 1 || $fmt == 0xFFFE) && $bits == 16;
+			($ich, $irate) = ($c, $r);
+			}
+		elsif ($id eq 'data') {
+			$data = substr($buf, $p + 8, $len);
+			last;
+			}
+		$p += 8 + $len + ($len & 1);
+		}
+	die "dotctl: $file has no fmt/data chunk\n" unless $ich && defined $data;
+	undef $buf;
+
+	my @s  = unpack 's<*', $data;
+	undef $data;
+	my $nf = int(@s / $ich);
+	my $step = $irate / $OR;
+	my $nout = int(($nf - 1) / $step) + 1;
+	my $fade = int($OR * 0.005);
+	my $pad  = "\0" x (int($OR * 0.05) * $OC * 2);
+
+	my $ap = pcm_out();
+	print $ap $pad;
+
+	my $CH = int($OR / 10);
+	for (my $j0 = 0; $j0 < $nout; $j0 += $CH) {
+		my $j1 = $j0 + $CH < $nout ? $j0 + $CH : $nout;
+		my @out;
+		for my $j ($j0 .. $j1 - 1) {
+			my $pos = $j * $step;
+			my $i0 = int $pos;
+			my $fr = $pos - $i0;
+			my $i1 = $i0 + 1 < $nf ? $i0 + 1 : $i0;
+			my $g = $j < $fade ? $j / $fade : $j >= $nout - $fade ? ($nout - 1 - $j) / $fade : 1;
+			for my $c (0 .. $OC - 1) {
+				my $k = $c % $ich;
+				my $a = $s[$i0*$ich + $k];
+				push @out, int(($a + ($s[$i1*$ich + $k] - $a) * $fr) * $g);
+				}
+			}
+		print $ap pack 's<*', @out;
+		}
+
+	print $ap $pad;
+	close $ap or die "dotctl: aplay failed\n";
 	}
 
 sub cmd_lux {
