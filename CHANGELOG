@@ -1,3 +1,11 @@
+Current Changes
+---------------
+- Adjusted audiowedge daemon to perform a gentler startup of the audio
+  hardware.
+- Removed "audio on" call in /etc/inittab; using alternative method to
+  start audio.
+
+
 v0.1.1 (05-OCT-26)
 ------------------
 - Added the "audiowedge" daemon to maintain a constant presence on the audio
