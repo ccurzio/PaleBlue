@@ -3,7 +3,7 @@
 by Christopher R. Curzio
 
 ## Introduction 
-Welcome to the PaleBlue Linux project. PaleBlue is a small Linux distribution for use with the 2nd Generation Amazon Echo Dot ("biscuit"). No Amazon services, no integrations, no voice assistant, no cloud nonsense, no tracking or data collection. Just Linux. (Plus a few useful utilities.)
+Welcome to the PaleBlue Linux project. PaleBlue is a small Linux distribution for use with the 2nd Generation Amazon Echo Dot ("biscuit"). No Amazon services, no integrations, no Alexa voice assistant, no cloud nonsense, no tracking or data collection. Just Linux. (Plus a few useful utilities.)
 
 PaleBlue is based on Alpine Linux and builds on the very excellent work by [HuskerMinion](https://github.com/HuskerMinion), namely [TECHO5](https://github.com/HuskerMinion/techo5) and [TECHO5 Dot](https://github.com/HuskerMinion/techo5-dot). Where TECHO5 Dot and its ilk are engineered specifically around Home Assistant integration, PaleBlue is designed to be more of a generic and usable Linux operating system.
 
@@ -130,3 +130,5 @@ This project is brand new so this list is short, but I imagine I will add things
 - Yuri Gelfand
 - The Alpine Linux Team
 - Carl Sagan
+
+<sub>Neither myself nor PaleBlue Linux are in any way affiliated with Amazon. "Echo," "Echo Dot," and "Alexa" are registered trademarks of Amazon.com, Inc.</sub>
