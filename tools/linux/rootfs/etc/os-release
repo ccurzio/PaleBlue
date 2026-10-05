@@ -1,5 +1,5 @@
 NAME="PaleBlue Linux"
 ID=paleblue
 ID_LIKE=alpine
-VERSION_ID=0.1.1
-PRETTY_NAME="PaleBlue Linux 0.1.1"
+VERSION_ID=0.1.2b
+PRETTY_NAME="PaleBlue Linux 0.1.2b"
