@@ -121,6 +121,7 @@ This project is brand new so this list is short, but I imagine I will add things
 
 - Expanded audio support through `dotctl audio play`
 - A native Windows installer that doesn't need Python (PowerShell?)
+- Fix/improve SSH service detection in the installer
 - More advanced setup (create ad-hoc wireless network and configure over HTTP?)
 - Maybe add some manner of Python? (BEGRUDGINGLY)
 
