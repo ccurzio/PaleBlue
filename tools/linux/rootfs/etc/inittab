@@ -1,4 +1,5 @@
 ::sysinit:/etc/paleblue/boot.sh
+::sysinit:/usr/local/bin/dotctl audio volume 90
 ::respawn:/usr/local/sbin/paleblue-sshd
 ::respawn:/usr/local/sbin/paleblue-run
 ::respawn:/usr/local/sbin/paleblue-console
