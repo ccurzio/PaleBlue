@@ -25,7 +25,9 @@ In addition to busybox and standard core system utilities, PaleBlue also include
 - A micro USB cable to connect the Echo Dot to the computer
 
 ## Installation 
-If your Dot is not already unlocked, you will first need to unlock it using the amonet package. On Windows this will also require installing the appropriate device drivers to communicate with the Echo Dot. Full instructions for this process can be found [here](https://xdaforums.com/t/unlock-root-twrp-unbrick-amazon-echo-dot-2nd-gen-2016-biscuit.4761416/). 
+If your Dot is not already unlocked, you will first need to unlock it using the amonet package. On Windows this will also require installing the appropriate device drivers to communicate with the Echo Dot. Full instructions for this process can be found [here](https://xdaforums.com/t/unlock-root-twrp-unbrick-amazon-echo-dot-2nd-gen-2016-biscuit.4761416/).
+
+The `adb` utility is included as part of the Android SDK Platform Tools. Downloads for Mac, Linux, and Windows can be found [here](https://developer.android.com/tools/releases/platform-tools).
 
 Once unlocked, unplug the Dot and then start it in recovery mode by plugging it in while holding the + button. Continue holding the button down until the device completes startup in recovery mode. When recovery mode is active, the LED ring on the device will glow white. Go ahead and grab the Dot's serial number with `adb devices`. This may come in handy. 
 
