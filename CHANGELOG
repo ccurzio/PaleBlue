@@ -1,0 +1,21 @@
+v0.1.1 (05-OCT-26)
+------------------
+- Added the "audiowedge" daemon to maintain a constant presence on the audio
+  hardware. This prevents pops and delays when playing audio and ensures the
+  stream being sent to the hardware isn't out of bounds in relation to its
+  capabilities.
+- Modified "dotctl" to work with the audiowedge daemon.
+- Added file-5.47-r2
+- Added openssl-sftp-server-10.3p1-r1
+- Bumped libcrypto to 3.5.9-r0
+- Bumped libssl3 to 3.5.9-r0
+- Bumped libexpat to 2.8.5-r0
+- Bumped libpcre2 to 10.49-r0
+
+
+v0.1 (04-OCT-26)
+----------------
+Initial release. Pre-1.0 version number as this is a brand new experiment and the
+full feature set for the OS has definitely not been hammered out just yet. Some
+basic stuff still needs to be added and several issues have been discovered
+during use that need to be fixed.
