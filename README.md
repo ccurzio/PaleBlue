@@ -119,8 +119,7 @@ You can also temporarily set the Dot to act as an open Bluetooth speaker using `
 `dotctl lux` returns the current value of the Dot's ambient light sensor.
 
 ## Known Issues
-
-
+- The audio hardware reeeeaaaallly doesn't like anything other than 48 kHz Stereo. Feeding it anything else might simply not play, or it might panic the kernel and reboot. This seems to be a hardware limitation. PaleBlue's audio tools do their best to compensate, so please use those tools and avoid playing audio by addressing the hardware directly. 
 
 ## To-Do List
 This project is brand new so this list is short, but I imagine I will add things as I think of them. 
