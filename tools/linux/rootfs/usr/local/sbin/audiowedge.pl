@@ -22,9 +22,6 @@ my $sel   = IO::Select->new($in);
 my $quiet = "\0" x (480 * 4);
 my $carry = '';
 
-syswrite($ap, $quiet) for 1 .. 20;
-system('/usr/local/bin/dotctl', 'audio', 'on');
-
 while (1) {
 	if ($sel->can_read(0)) {
 		my $n = sysread($in, my $buf, 19200);
