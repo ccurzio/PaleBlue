@@ -49,6 +49,7 @@ Once unlocked, unplug the Dot and then start it in recovery mode by plugging it 
 - If you want to restart the device in recovery mode, logged into the Dot as root you can use `to-twrp --yes`
 - If you're in recovery mode and you want to boot normally without making any further changes, on the computer connected to the Dot use `adb shell sh /cache/paleblue/back-to-linux.sh`
 - Once you've confirmed the device boots properly and you can get in via SSH, you can and probably should go ahead and disable that serial root shell. Edit `/etc/inittab` and comment out the `paleblue-console` entry. (Or just use: `sed -i 's|^::respawn:/usr/local/sbin/paleblue-console|#&|' /etc/inittab`.) Once the change is saved, the serial console will be disabled on the next reboot.
+- By default only SSH is allowed inbound. Firewall rules are a simple matter of editing `/data/paleblue-linux/firewall-ports`; specify one rule per line with the protocol followed by the port number (or a range of ports separated by a colon), such as `tcp 3000` or `udp 6040:6050`. After saving your changes, reload the firewall by running `paleblue-firewall`. 
 - If you don't like nano, don't worry. vi is included as well.
 
 ## PaleBlue Dot Hardware Manager 
